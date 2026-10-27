@@ -1,35 +1,161 @@
 # Care-Flow
 
-A workforce scheduling and communication platform designed for nursing managers and healthcare staff.
+**Healthcare workforce scheduling, availability, onboarding, and shift-coverage platform.**
 
-> **Portfolio Showcase** — The production source repository is private. This public repository documents the project's architecture, product design, engineering decisions, and technologies without exposing application secrets or private data.
+Care-Flow is a web application designed around the day-to-day workflow between nursing managers and healthcare workers. It provides separate Manager and Worker portals for scheduling, availability collection, employee onboarding, announcements, notifications, sick-day requests, and profile management.
 
-## Overview
+> **Portfolio Showcase** — The production source repository is private. This public repository documents the product, workflows, architecture, and engineering work without exposing application secrets, production data, or private source code.
 
-Care-Flow was created to simplify scheduling and day-to-day workforce communication for healthcare teams. Managers can organize employees and schedules, while staff can manage availability and communicate scheduling needs through a centralized web application.
+## Product at a Glance
 
-## Key Features
+| Manager Portal | Worker Portal |
+| --- | --- |
+| Dashboard & announcements | Shift calendar |
+| Employee directory & profile editing | Assigned shifts |
+| Vacation management | Management announcements |
+| SMS employee onboarding | Sick-day requests |
+| Scheduling periods | Availability requests |
+| Shift creation & direct assignment | Batch availability responses |
+| Overtime & agency-shift visibility | Personal profile management |
+| Sick-day notifications & volunteer coverage | Shift preferences & certifications |
 
-- Employee onboarding and workforce management
-- Role-based access for managers and healthcare staff
-- Employee profiles with contact and employment information
-- Staff availability submission
-- Schedule creation and management
-- Sick-leave communication workflows
-- Authentication and protected application data
-- Responsive web-based interface
+## Authentication & Role Routing
 
-## Roles
+Care-Flow uses a shared phone-based authentication flow for managers and workers.
 
-**Manager** — manages employees, schedules, onboarding, and workforce information.
+1. The user enters their registered phone number.
+2. A six-digit OTP verification code is sent to the phone.
+3. The user verifies the code.
+4. Care-Flow automatically routes the authenticated user to the appropriate Manager or Worker portal.
 
-**LPN / HCL** — accesses staff-facing functionality such as availability, scheduling information, and profile management.
+This provides a simple login experience while keeping role-specific workflows separated.
+
+## Manager Portal
+
+### Dashboard & Announcements
+
+The Manager Dashboard acts as the operational hub. Managers can view the announcement feed, keep high-priority messages pinned, identify the current on-call manager, search announcements, and publish rich-text announcements.
+
+### Employee Management
+
+Managers can browse active employees by role and open detailed employee profiles. Profile information includes contact details, role, casual status, certifications, shift preferences, maximum hours, emergency contact information, and other workforce data.
+
+Employee records can be switched into edit mode and updated directly from the portal.
+
+Managers can also maintain employee vacation date ranges.
+
+### Employee Onboarding
+
+New workers can be invited directly from Care-Flow.
+
+The onboarding workflow captures information such as:
+
+- Phone number
+- First and last name
+- Role
+- Casual status
+- Seniority / hire date
+- Maximum hours per scheduling period
+
+Care-Flow can send an SMS invitation containing the secure onboarding/login path. Managers can track onboarding status and workers join the employee directory after completing verification.
+
+### Scheduling & Availability Collection
+
+Managers create scheduling periods by defining a start date, end date, and worker response deadline.
+
+They can then select calendar dates and create required shifts by role. Supported shift patterns include day, evening, and night shifts.
+
+Once configured, an availability request is sent to eligible workers.
+
+### Schedule Detail & Direct Assignment
+
+The schedule-detail view presents a full-period shift grid with assigned employees.
+
+Managers can:
+
+- See open and assigned shift slots
+- Directly assign employees to open shifts
+- See available and unavailable workers during assignment
+- Identify workers approaching overtime/hour limits
+- Distinguish agency shifts
+- Update the schedule immediately after assignment
+
+### Notifications & Shift Coverage
+
+When a worker submits a sick-day request, managers receive a notification tied to the affected shift.
+
+Unacknowledged requests are highlighted, and managers can view workers who have volunteered to cover the open shift. This connects absence reporting with the coverage workflow instead of treating them as separate processes.
+
+## Worker Portal
+
+### Home
+
+The Worker Home screen provides a monthly calendar showing assigned shifts. Selecting a scheduled day opens the shift details.
+
+Management announcements remain visible beneath the calendar so operational communication and scheduling are available from the same screen.
+
+### Sick-Day Requests
+
+For eligible future shifts, workers can open the shift and submit a sick-day request with an optional reason.
+
+The shift is marked as requested and management is notified.
+
+### Availability
+
+Workers can see:
+
+- **Current requests** — scheduling periods awaiting a response
+- **Past requests** — previously completed availability submissions
+
+Opening a request starts a batch-response workflow. Every requested shift is grouped by date and the worker answers **Yes** or **No** for each one. Once every shift has a response, the batch can be submitted to management for scheduling.
+
+### Worker Profile
+
+Workers can view and maintain their personal information, including contact details, address, shift preferences, certifications, maximum hours, and emergency contact information.
+
+## Core Workflow
+
+```text
+                         CARE-FLOW
+
+                +-----------------------+
+                | Phone + OTP Login     |
+                +-----------+-----------+
+                            |
+                    Role-based routing
+                     /             \
+                    /               \
+           MANAGER PORTAL       WORKER PORTAL
+                 |                    |
+       Create scheduling period       |
+                 |                    |
+         Define required shifts       |
+                 |                    |
+         Send availability request -->|
+                                      |
+                              Yes / No responses
+                                      |
+       Availability returned <---------+
+                 |
+          Build schedule
+                 |
+       Assign / Direct Assign
+                 |
+          Published shifts ----------> Worker Calendar
+                 |
+                 |<---------- Sick-day request
+                 |
+        Coverage notification
+                 |
+         View volunteers
+                 |
+          Fill open shift
+```
 
 ## Technology
 
 | Area | Technology |
 | --- | --- |
-| Application | Modern web application |
 | Database & Auth | Supabase / PostgreSQL |
 | Hosting | Vercel |
 | DNS / Edge | Cloudflare |
@@ -37,60 +163,77 @@ Care-Flow was created to simplify scheduling and day-to-day workforce communicat
 | CI/CD | GitHub Actions |
 | Runtime | Node.js |
 
-## Architecture
+## Application Architecture
 
 ```text
-                    Internet
-                       |
-                  Cloudflare
-                       |
-                     Vercel
-                       |
-                 Web Application
-                    /       \
-                   /         \
-          Authentication    Application API
-                 |                |
-                 +------ Supabase-+
-                         |
-                    PostgreSQL
+                     Internet
+                        |
+                   Cloudflare
+                        |
+                      Vercel
+                        |
+                  Web Application
+                  /             \
+          Manager Portal     Worker Portal
+                  \             /
+                   Application Layer
+                     /        \
+                    /          \
+             Authentication   Data Access
+                    \          /
+                     Supabase
+                        |
+                   PostgreSQL
 ```
-
-The project separates application delivery from managed authentication and data services. Deployment workflows are maintained through GitHub and CI/CD automation.
 
 ## Engineering Highlights
 
-### Database design
-Care-Flow uses a relational data model for employees, roles, scheduling information, and application relationships. Database changes are managed through migrations rather than manual production changes.
+**Role-aware application design** — A shared authentication entry point routes users into distinct manager and worker experiences.
 
-### Authentication & authorization
-The application separates manager and employee capabilities using application roles. Authorization is designed so users only access functionality appropriate to their role.
+**Relational workforce data** — Employees, roles, availability, scheduling periods, shifts, vacation ranges, notifications, and related records are represented as structured application data.
 
-### CI/CD
-Source changes are version-controlled in GitHub and deployed through an automated workflow, with environment-specific configuration stored outside the repository.
+**Workflow-oriented scheduling** — Scheduling is modelled as a process: define a period, request availability, collect responses, assign workers, and manage exceptions.
 
-### Security
-Secrets and environment-specific credentials are not committed to source control. Personally identifiable employee information and production configuration are intentionally excluded from this showcase.
+**Operational exception handling** — Sick days, volunteer coverage, overtime warnings, open shifts, and agency shifts are surfaced directly in scheduling workflows.
+
+**Database migrations** — Database changes are managed through migrations rather than relying on manual production changes.
+
+**CI/CD** — Application changes are version-controlled in GitHub and deployed through automated workflows.
+
+**Security-conscious portfolio design** — Production credentials, environment secrets, private employee information, and the private application source are intentionally excluded from this repository.
 
 ## What This Project Demonstrates
 
-- Full-stack SaaS architecture
-- PostgreSQL relational data modelling
-- Authentication and role-based access
-- Database migration workflows
-- CI/CD and deployment automation
-- Cloud-hosted application operations
-- DNS and edge configuration
-- Designing software around real operational workflows
+- Full-stack SaaS product development
+- Healthcare workforce workflow modelling
+- PostgreSQL relational data design
+- OTP authentication and role-based application flows
+- Scheduling and availability systems
+- Employee onboarding workflows
+- Notification and shift-coverage workflows
+- CI/CD and cloud deployment
+- Managed backend services
+- DNS / edge configuration
+- Product and UI design around real operational processes
+
+## Repository Structure
+
+```text
+care-flow-showcase/
+├── README.md
+└── docs/
+    ├── ARCHITECTURE.md
+    └── PRODUCT-WALKTHROUGH.md
+```
+
+## Privacy
+
+The screenshots used during development contain demonstration/test data. This public showcase intentionally avoids publishing identifiable phone numbers, addresses, emergency contacts, credentials, or production records.
 
 ## Project Status
 
-Care-Flow is an independently developed project. This repository serves as a technical portfolio overview; the production source remains private.
-
-## Screenshots
-
-Product screenshots and additional architecture visuals can be added here as the application evolves.
+Care-Flow is an independently developed project. Development continues in a private repository; this repository is maintained as a technical and product portfolio case study.
 
 ---
 
-Built as a practical exploration of SaaS engineering, cloud deployment, and workflow automation.
+**Private source · Public engineering showcase**
